@@ -17,12 +17,12 @@ export default class CardComponent extends LitElement {
         cursor: "pointer",
         backgroundColor: Color[this.val.color].toLowerCase(),
       })}
-      @click="${() =>
-        this.client.playCard({ card: this.val }, (error) => {
-          if (error) {
-            this.dispatchEvent(new CustomEvent("error", { detail: error }));
-          }
-        })}"
+      @click="${async () => {
+        const res = await this.client.playCard({ card: this.val });
+        if (res.type === "error") {
+          this.dispatchEvent(new CustomEvent("error", { detail: res.error }));
+        }
+      }}"
     >
       ${this.val.value}
     </div>`;

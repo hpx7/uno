@@ -8,8 +8,6 @@ types:
   Card:
     value: number
     color: Color
-  PlayerData:
-    playerName: PlayerName
   PlayerState:
     hand: Card[]
     players: PlayerName[]
@@ -25,6 +23,10 @@ methods:
     card: Card
   drawCard:
 
+auth:
+  anonymous:
+    separator: "-"
+
 userState: PlayerState
-userData: PlayerData
 initialize: createGame
+error: string
