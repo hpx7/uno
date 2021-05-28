@@ -19,8 +19,8 @@ export default class CardComponent extends LitElement {
       })}
       @click="${async () => {
         const res = await this.client.playCard({ card: this.val });
-        if (res.type === "error") {
-          this.dispatchEvent(new CustomEvent("error", { detail: res.error }));
+        if (res !== undefined) {
+          this.dispatchEvent(new CustomEvent("error", { detail: res }));
         }
       }}"
     >

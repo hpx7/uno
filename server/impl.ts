@@ -1,7 +1,6 @@
-import { Methods } from "./.rtag/methods";
+import { Methods, Context, Result } from "./.rtag/methods";
 import {
   UserData,
-  Result,
   PlayerState,
   ICreateGameRequest,
   IJoinGameRequest,
@@ -23,7 +22,7 @@ interface InternalState {
 }
 
 export class Impl implements Methods<InternalState> {
-  createGame(user: UserData, request: ICreateGameRequest): InternalState {
+  createGame(user: UserData, ctx: Context, request: ICreateGameRequest): InternalState {
     const deck = [];
     for (let i = 2; i <= 9; i++) {
       deck.push({ value: i, color: Color.RED });
@@ -33,12 +32,12 @@ export class Impl implements Methods<InternalState> {
     }
     return { deck, players: [user.name], hands: new Map(), turn: user.name };
   }
-  joinGame(state: InternalState, user: UserData, request: IJoinGameRequest): Result {
+  joinGame(state: InternalState, user: UserData, ctx: Context, request: IJoinGameRequest): Result {
     state.players.push(user.name);
-    return Result.success();
+    return Result.modified();
   }
-  startGame(state: InternalState, user: UserData, request: IStartGameRequest): Result {
-    state.deck = shuffle(state.deck);
+  startGame(state: InternalState, user: UserData, ctx: Context, request: IStartGameRequest): Result {
+    state.deck = shuffle(ctx.randInt, state.deck);
     state.players.forEach((playerName) => {
       state.hands.set(playerName, []);
       for (let i = 0; i < 7; i++) {
@@ -46,19 +45,19 @@ export class Impl implements Methods<InternalState> {
       }
     });
     state.pile = state.deck.pop();
-    return Result.success();
+    return Result.modified();
   }
-  playCard(state: InternalState, user: UserData, request: IPlayCardRequest): Result {
+  playCard(state: InternalState, user: UserData, ctx: Context, request: IPlayCardRequest): Result {
     if (state.turn != user.name) {
-      return Result.error("Not your turn");
+      return Result.unmodified("Not your turn");
     }
     if (request.card.color != state.pile!.color && request.card.value != state.pile!.value) {
-      return Result.error("Doesn't match top of pile");
+      return Result.unmodified("Doesn't match top of pile");
     }
     const hand = state.hands.get(user.name)!;
     const cardIdx = hand.findIndex((card) => card.value == request.card.value && card.color == request.card.color);
     if (cardIdx < 0) {
-      return Result.error("Card not in hand");
+      return Result.unmodified("Card not in hand");
     }
     // remove from hand
     hand.splice(cardIdx, 1);
@@ -67,18 +66,18 @@ export class Impl implements Methods<InternalState> {
     // check if won
     if (hand.length == 0) {
       state.winner = user.name;
-      return Result.success();
+      return Result.modified();
     }
     // upate turn
     const currIdx = state.players.indexOf(state.turn);
     const nextIdx = (currIdx + 1) % state.players.length;
     state.turn = state.players[nextIdx];
-    return Result.success();
+    return Result.modified();
   }
-  drawCard(state: InternalState, user: UserData, request: IDrawCardRequest): Result {
+  drawCard(state: InternalState, user: UserData, ctx: Context, request: IDrawCardRequest): Result {
     const hand = state.hands.get(user.name)!;
     hand.push(state.deck.pop()!);
-    return Result.success();
+    return Result.modified();
   }
   getUserState(state: InternalState, user: UserData): PlayerState {
     return {
@@ -91,10 +90,10 @@ export class Impl implements Methods<InternalState> {
   }
 }
 
-function shuffle<T>(items: T[]) {
+function shuffle<T>(randInt: (limit: number) => number, items: T[]) {
   const shuffled = [...items];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = randInt(i + 1);
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
